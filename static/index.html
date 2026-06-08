@@ -9,7 +9,8 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="/static/styles.css">
+  <meta name="app-base" content="__BASE_PATH__">
+  <link rel="stylesheet" href="__BASE_PATH__/static/styles.css">
 </head>
 <body>
   <div class="bg-pattern"></div>
@@ -41,6 +42,7 @@
       <button class="tab" data-tab="regiones">Regiones</button>
       <button class="tab" data-tab="analisis">Análisis</button>
       <button class="tab" data-tab="historial">Histórico</button>
+      <button class="tab" data-tab="comparacion">Comparación 2021</button>
     </nav>
   </header>
 
@@ -141,6 +143,46 @@
         </div>
       </div>
     </section>
+
+    <!-- TAB COMPARACIÓN 2021 -->
+    <section class="tab-panel" id="panel-comparacion">
+      <div class="card">
+        <h2>Segunda vuelta 2021 vs 2026</h2>
+        <p class="section-desc">Castillo–Fujimori (2021, ganó Castillo) comparado con Keiko–Sánchez (2026). Se analiza el perfil regional de Keiko/Fujimori.</p>
+        <div id="compResumen" class="comp-hero"></div>
+        <p class="impact-box" id="compImpacto"></p>
+      </div>
+      <div class="charts-row analysis-charts">
+        <article class="card inner chart-card">
+          <h3>% Keiko/Fujimori: 2021 vs 2026 actual</h3>
+          <div class="chart-wrap tall"><canvas id="chartComp2021"></canvas></div>
+        </article>
+        <article class="card inner chart-card">
+          <h3>Variación de Keiko vs Fujimori 2021 (pp)</h3>
+          <div class="chart-wrap tall"><canvas id="chartCompDelta"></canvas></div>
+        </article>
+      </div>
+      <div class="card" style="margin-top:1rem">
+        <h3>Detalle por departamento</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Departamento</th>
+                <th>Fujimori 2021</th>
+                <th>Keiko 2026</th>
+                <th>Proy. 2026</th>
+                <th>Δ pp</th>
+                <th>Similitud</th>
+                <th>Ganador 2021</th>
+                <th>Ganador 2026</th>
+              </tr>
+            </thead>
+            <tbody id="compTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
   </main>
 
   <footer class="footer">
@@ -148,6 +190,6 @@
     · Actualización cada <span id="pollInterval">60</span>s
   </footer>
 
-  <script src="/static/dashboard.js"></script>
+  <script src="__BASE_PATH__/static/dashboard.js"></script>
 </body>
 </html>

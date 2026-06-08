@@ -13,6 +13,7 @@ from typing import Any
 import httpx
 
 from analysis import compute_projection, get_extranjero_config
+from elecciones_2021 import compute_comparacion_2021
 from history import ProjectionHistory
 
 logger = logging.getLogger(__name__)
@@ -40,24 +41,24 @@ DEPARTAMENTOS: dict[str, str] = {
     "040000": "Arequipa",
     "050000": "Ayacucho",
     "060000": "Cajamarca",
-    "070000": "Callao",
-    "080000": "Cusco",
-    "090000": "Huancavelica",
-    "100000": "Huánuco",
-    "110000": "Ica",
-    "120000": "Junín",
-    "130000": "La Libertad",
-    "140000": "Lambayeque",
-    "150000": "Lima",
-    "160000": "Loreto",
-    "170000": "Madre de Dios",
-    "180000": "Moquegua",
-    "190000": "Pasco",
-    "200000": "Piura",
-    "210000": "Puno",
-    "220000": "San Martín",
-    "230000": "Tacna",
-    "240000": "Tumbes",
+    "240000": "Callao",
+    "070000": "Cusco",
+    "080000": "Huancavelica",
+    "090000": "Huánuco",
+    "100000": "Ica",
+    "110000": "Junín",
+    "120000": "La Libertad",
+    "130000": "Lambayeque",
+    "140000": "Lima",
+    "150000": "Loreto",
+    "160000": "Madre de Dios",
+    "170000": "Moquegua",
+    "180000": "Pasco",
+    "190000": "Piura",
+    "200000": "Puno",
+    "210000": "San Martín",
+    "220000": "Tacna",
+    "230000": "Tumbes",
     "250000": "Ucayali",
 }
 
@@ -458,6 +459,12 @@ def aggregate_nacional(
 
     procesamiento = aggregate_procesamiento(regiones)
 
+    proyeccion = compute_projection(
+        regiones,
+        extranjero=extranjero,
+        extranjero_config=get_extranjero_config(),
+    )
+
     return {
         "candidatos": candidatos,
         "total_votos": total_votos,
@@ -469,11 +476,8 @@ def aggregate_nacional(
             "porcentaje": procesamiento["porcentaje_contabilizadas"],
         },
         "procesamiento": procesamiento,
-        "proyeccion": compute_projection(
-            regiones,
-            extranjero=extranjero,
-            extranjero_config=get_extranjero_config(),
-        ),
+        "proyeccion": proyeccion,
+        "comparacion_2021": compute_comparacion_2021(regiones, proyeccion),
     }
 
 
@@ -578,6 +582,7 @@ class ElectionStore:
             "poll_interval_seconds": poll_interval_seconds,
             "nacional": s.nacional,
             "proyeccion": s.nacional.get("proyeccion", {}),
+            "comparacion_2021": s.nacional.get("comparacion_2021", {}),
             "extranjero": s.extranjero,
             "historial": {
                 "total_entradas": self.history.get_state().get("entry_count", 0),

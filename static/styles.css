@@ -169,6 +169,24 @@ tr:hover td { background: rgba(255,255,255,0.02); cursor: pointer; }
 .hist-meta { font-size: 0.82rem; color: var(--muted); font-family: var(--mono); }
 .section-desc { color: var(--muted); font-size: 0.85rem; margin-bottom: 1rem; }
 
+.comp-hero {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.85rem; margin: 1rem 0;
+}
+.comp-stat {
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 0.85rem;
+}
+.comp-stat .label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; }
+.comp-stat .value { font-family: var(--mono); font-size: 1.15rem; font-weight: 700; margin-top: 0.2rem; }
+.comp-stat .sub { font-size: 0.78rem; color: var(--muted); margin-top: 0.15rem; }
+.impact-box {
+  background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.25);
+  border-radius: 10px; padding: 0.85rem 1rem; font-size: 0.88rem; line-height: 1.5; color: #bfdbfe;
+}
+.delta-pos { color: var(--ok); font-family: var(--mono); font-weight: 600; }
+.delta-neg { color: #f97316; font-family: var(--mono); font-weight: 600; }
+
 .footer {
   position: relative; z-index: 1; text-align: center; padding: 1.25rem;
   color: var(--muted); font-size: 0.82rem; border-top: 1px solid var(--border);

@@ -1,12 +1,35 @@
+const BASE = (document.querySelector('meta[name="app-base"]')?.content || "").replace(/\/$/, "");
+const apiUrl = (path) => `${BASE}${path}`;
+
 const COLORS = { keiko: "#3b82f6", sanchez: "#f97316", neutral: "#64748b", pending: "#334155" };
 const GEO_TO_UBIGEO = {
-  Amazonas: "010000", Ancash: "020000", "Apurímac": "030000", Arequipa: "040000",
-  Ayacucho: "050000", Cajamarca: "060000", "El Callao": "070000", Cusco: "080000",
-  Huancavelica: "090000", "Huánuco": "100000", Ica: "110000", "Junín": "120000",
-  "La Libertad": "130000", Lambayeque: "140000", Lima: "150000",
-  "Municipalidad Metropolitana de Lima": "150000", Loreto: "160000",
-  "Madre de Dios": "170000", Moquegua: "180000", Pasco: "190000", Piura: "200000",
-  Puno: "210000", "San Martín": "220000", Tacna: "230000", Tumbes: "240000", Ucayali: "250000",
+  Amazonas: "010000",
+  Ancash: "020000",
+  "Apurímac": "030000",
+  Arequipa: "040000",
+  Ayacucho: "050000",
+  Cajamarca: "060000",
+  "El Callao": "240000",
+  Callao: "240000",
+  Cusco: "070000",
+  Huancavelica: "080000",
+  "Huánuco": "090000",
+  Ica: "100000",
+  "Junín": "110000",
+  "La Libertad": "120000",
+  Lambayeque: "130000",
+  Lima: "140000",
+  "Municipalidad Metropolitana de Lima": "140000",
+  Loreto: "150000",
+  "Madre de Dios": "160000",
+  Moquegua: "170000",
+  Pasco: "180000",
+  Piura: "190000",
+  Puno: "200000",
+  "San Martín": "210000",
+  Tacna: "220000",
+  Tumbes: "230000",
+  Ucayali: "250000",
 };
 
 let appData = null;
@@ -41,6 +64,7 @@ function candColor(n) { return isKeiko(n) ? COLORS.keiko : COLORS.sanchez; }
 function getProcesamiento(r) { return r?.procesamiento || r?.actas || {}; }
 function getMapa() { return appData?.proyeccion?.mapa || appData?.nacional?.proyeccion?.mapa || {}; }
 function getProy() { return appData?.proyeccion || appData?.nacional?.proyeccion || {}; }
+function getComp2021() { return appData?.comparacion_2021 || appData?.nacional?.comparacion_2021 || {}; }
 
 function getDeptLeader(dept, mode) {
   if (!dept) return null;
@@ -77,7 +101,7 @@ async function initMap() {
     attribution: "&copy; OSM &copy; CARTO", maxZoom: 12,
   }).addTo(map);
 
-  const resp = await fetch("/static/peru-departamentos.geojson");
+  const resp = await fetch(apiUrl("/static/peru-departamentos.geojson"));
   const geo = await resp.json();
 
   geoLayer = L.geoJSON(geo, {
@@ -311,7 +335,7 @@ function destroyChart(id) {
 }
 
 async function renderHistorial() {
-  const resp = await fetch("/api/historial?limit=100");
+  const resp = await fetch(apiUrl("/api/historial?limit=100"));
   const data = await resp.json();
   const entries = data.entries || [];
   document.getElementById("histMeta").textContent =
@@ -343,6 +367,76 @@ async function renderHistorial() {
   });
 }
 
+function renderComparacion2021() {
+  const comp = getComp2021();
+  if (!comp.departamentos?.length) return;
+
+  const n21 = comp.nacional_2021 || {};
+  const n26 = comp.nacional_2026 || {};
+  const res = comp.resumen || {};
+  const ext = comp.extranjero_comparacion || {};
+
+  document.getElementById("compResumen").innerHTML = `
+    <article class="comp-stat"><span class="label">2021 — Fujimori nacional</span><span class="value">${fmtPct(n21.fujimori_pct)}</span><span class="sub">Ganó Castillo ${fmtPct(n21.castillo_pct)}</span></article>
+    <article class="comp-stat"><span class="label">2026 — Keiko actual</span><span class="value">${fmtPct(n26.keiko_pct_actual)}</span><span class="sub">${n26.delta_keiko_vs_2021_actual > 0 ? "+" : ""}${fmtPct(n26.delta_keiko_vs_2021_actual)} pp vs 2021</span></article>
+    <article class="comp-stat"><span class="label">2026 — Keiko proyectado</span><span class="value">${fmtPct(n26.keiko_pct_proyectado)}</span><span class="sub">${n26.delta_keiko_vs_2021_proyectado > 0 ? "+" : ""}${fmtPct(n26.delta_keiko_vs_2021_proyectado)} pp vs 2021</span></article>
+    <article class="comp-stat"><span class="label">Extranjero Fujimori/Keiko</span><span class="value">${fmtPct(ext["2021_fujimori_pct"])} → ${fmtPct(ext["2026_keiko_pct_estimado"])}</span><span class="sub">${ext.delta_pp > 0 ? "+" : ""}${fmtPct(ext.delta_pp)} pp</span></article>
+    <article class="comp-stat"><span class="label">Similitud perfil regional</span><span class="value">${res.similitud_promedio_perfil || "—"}%</span><span class="sub">${res.departamentos_cambio_linea_fujimori} deptos. cambian control Fujimori→Keiko</span></article>
+    <article class="comp-stat"><span class="label">Proy. final 2026</span><span class="value">${shortName(n26.ganador_proyectado_final)}</span><span class="sub">Keiko mejora en ${res.departamentos_keiko_mejora} / cae en ${res.departamentos_keiko_caida}</span></article>`;
+
+  document.getElementById("compImpacto").textContent = comp.impacto || "";
+
+  const depts = comp.departamentos.slice(0, 15);
+  destroyChart("chartComp2021");
+  charts.chartComp2021 = new Chart(document.getElementById("chartComp2021"), {
+    type: "bar",
+    data: {
+      labels: depts.map((d) => d.region),
+      datasets: [
+        { label: "Fujimori 2021", data: depts.map((d) => d["2021"].fujimori_pct), backgroundColor: "rgba(249,115,22,0.6)" },
+        { label: "Keiko 2026", data: depts.map((d) => d["2026_actual"].keiko_pct), backgroundColor: "rgba(59,130,246,0.75)" },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, indexAxis: "y",
+      scales: { x: { max: 100, ticks: { callback: (v) => v + "%" } } },
+      plugins: { legend: { labels: { color: "#8b9bbf" } } },
+    },
+  });
+
+  destroyChart("chartCompDelta");
+  charts.chartCompDelta = new Chart(document.getElementById("chartCompDelta"), {
+    type: "bar",
+    data: {
+      labels: depts.map((d) => d.region),
+      datasets: [{
+        label: "Δ Keiko vs Fujimori 2021 (pp)",
+        data: depts.map((d) => d.delta_keiko_pp_actual),
+        backgroundColor: depts.map((d) => d.delta_keiko_pp_actual >= 0 ? "rgba(34,197,94,0.75)" : "rgba(239,68,68,0.75)"),
+      }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, indexAxis: "y",
+      plugins: { legend: { display: false } },
+    },
+  });
+
+  document.getElementById("compTableBody").innerHTML = comp.departamentos.map((d) => {
+    const delta = d.delta_keiko_pp_actual;
+    const cls = delta >= 0 ? "delta-pos" : "delta-neg";
+    return `<tr>
+      <td><strong>${d.region}</strong></td>
+      <td>${fmtPct(d["2021"].fujimori_pct)}</td>
+      <td>${fmtPct(d["2026_actual"].keiko_pct)}</td>
+      <td>${fmtPct(d["2026_proyectado"].keiko_pct)}</td>
+      <td class="${cls}">${delta > 0 ? "+" : ""}${fmtPct(delta)}</td>
+      <td>${d.similitud_perfil_actual}%</td>
+      <td>${d["2021"].ganador}</td>
+      <td>${d["2026_proyectado"].ganador}${d.cambio_linea_fujimori ? " ⚡" : ""}</td>
+    </tr>`;
+  }).join("");
+}
+
 function renderAll() {
   renderNationalSummary();
   renderExtranjeroSummary();
@@ -350,14 +444,15 @@ function renderAll() {
   refreshMapStyles();
   renderTable();
   renderAnalysis();
+  renderComparacion2021();
 }
 
 async function loadData(manual = false) {
   const btn = document.getElementById("btnRefresh");
   if (manual) btn.disabled = true;
   try {
-    if (manual) await fetch("/api/refresh", { method: "POST" });
-    const res = await fetch("/api/data");
+    if (manual) await fetch(apiUrl("/api/refresh"), { method: "POST" });
+    const res = await fetch(apiUrl("/api/data"));
     appData = await res.json();
     pollIntervalSec = appData.poll_interval_seconds || 60;
     document.getElementById("pollInterval").textContent = pollIntervalSec;
@@ -399,6 +494,7 @@ document.querySelectorAll(".tab").forEach((tab) => {
     tab.classList.add("active");
     document.getElementById(`panel-${tab.dataset.tab}`).classList.add("active");
     if (tab.dataset.tab === "historial") renderHistorial();
+    if (tab.dataset.tab === "comparacion") renderComparacion2021();
     setTimeout(() => map?.invalidateSize(), 200);
   });
 });

@@ -8,8 +8,8 @@ import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
-from fastapi.responses import FileResponse
+from fastapi import APIRouter, FastAPI
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from fetcher import ElectionStore
@@ -23,6 +23,8 @@ logger = logging.getLogger("onpe-dashboard")
 POLL_INTERVAL = int(os.getenv("POLL_INTERVAL_SECONDS", "60"))
 DATA_DIR = Path(os.getenv("DATA_DIR", "data"))
 STATIC_DIR = Path(__file__).parent / "static"
+BASE_PATH = os.getenv("BASE_PATH", "/elecciones").rstrip("/") or ""
+PORT = int(os.getenv("PORT", "8080"))
 
 store = ElectionStore(data_dir=DATA_DIR)
 _poll_task: asyncio.Task | None = None
@@ -58,20 +60,28 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+router = APIRouter()
 
 
-@app.get("/")
+def render_index() -> HTMLResponse:
+    html = (STATIC_DIR / "index.html").read_text(encoding="utf-8")
+    html = html.replace("__BASE_PATH__", BASE_PATH)
+    return HTMLResponse(html)
+
+
+@router.get("/")
 async def index():
-    return FileResponse(STATIC_DIR / "index.html")
+    return render_index()
 
 
-@app.get("/api/data")
+@router.get("/api/data")
 async def api_data():
-    return store.to_api_dict(poll_interval_seconds=POLL_INTERVAL)
+    payload = store.to_api_dict(poll_interval_seconds=POLL_INTERVAL)
+    payload["base_path"] = BASE_PATH
+    return payload
 
 
-@app.get("/api/health")
+@router.get("/api/health")
 async def health():
     s = store.snapshot
     return {
@@ -81,18 +91,32 @@ async def health():
         "fetch_count": s.fetch_count,
         "poll_interval_seconds": POLL_INTERVAL,
         "last_error": s.last_error,
+        "base_path": BASE_PATH,
     }
 
 
-@app.get("/api/historial")
+@router.get("/api/historial")
 async def api_historial(limit: int = 100):
     return {
         "state": store.history.get_state(),
         "entries": store.history.list_entries(limit=min(limit, 500)),
+        "base_path": BASE_PATH,
     }
 
 
-@app.post("/api/refresh")
+@router.post("/api/refresh")
 async def manual_refresh():
     snapshot = await store.refresh()
     return {"ok": True, "updated_at": snapshot.updated_at}
+
+
+if BASE_PATH:
+    app.mount(f"{BASE_PATH}/static", StaticFiles(directory=STATIC_DIR), name="static")
+    app.include_router(router, prefix=BASE_PATH)
+
+    @app.get("/")
+    async def root_redirect():
+        return RedirectResponse(url=f"{BASE_PATH}/", status_code=307)
+else:
+    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+    app.include_router(router)
