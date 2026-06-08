@@ -1,0 +1,6 @@
+__pycache__
+*.pyc
+.git
+data/
+onpe_regiones.json
+.env

@@ -1,0 +1,18 @@
+services:
+  dashboard:
+    build: .
+    container_name: onpe-dashboard
+    ports:
+      - "8080:8080"
+    environment:
+      POLL_INTERVAL_SECONDS: "60"
+      DATA_DIR: /app/data
+      VOTO_EXTRANJERO_ESTIMADO: "350000"
+      VOTO_EXTRANJERO_KEIKO_PCT: "65"
+      VOTO_EXTRANJERO_SANCHEZ_PCT: "35"
+    volumes:
+      - onpe-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  onpe-data:
